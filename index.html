@@ -27,6 +27,8 @@
     <h1>PageRank Calculator</h1>
     <label for="matrixInput">Enter adjacency matrix (comma-separated rows, space-separated elements):</label>
     <textarea id="matrixInput"></textarea>
+    <label for="dampingInput">Damping Factor (default: 0.85):</label>
+    <input type="text" id="dampingInput" placeholder="0.85" />
     <label for="toleranceInput">Tolerance (default: 1e-10):</label>
     <input type="text" id="toleranceInput" placeholder="1e-10" />
     <button id="calculateButton">Calculate PageRank</button>
@@ -37,6 +39,7 @@
   <script>
     document.getElementById("calculateButton").addEventListener("click", () => {
       const matrixInput = document.getElementById("matrixInput").value;
+      const dampingInput = parseFloat(document.getElementById("dampingInput").value || 0.85);
       const toleranceInput = parseFloat(document.getElementById("toleranceInput").value || 1e-10);
 
       const rows = matrixInput.trim().split("\n").map(row => row.split(" ").map(Number));
@@ -49,7 +52,7 @@
       }
 
       // Calculate PageRank
-      const results = calculatePageRank(rows, toleranceInput);
+      const results = calculatePageRank(rows, dampingInput, toleranceInput);
 
       // Display results
       const resultsDiv = document.getElementById("results");
@@ -59,20 +62,23 @@
       });
     });
 
-    function calculatePageRank(adjMatrix, tolerance) {
+    function calculatePageRank(adjMatrix, damping, tolerance) {
       const size = adjMatrix.length;
-      const transitionMatrix = createTransitionMatrix(adjMatrix);
-      const rankVector = Array(size).fill(1 / size);
+      const transitionMatrix = createTransitionMatrix(adjMatrix, damping, size);
+      let rankVector = Array(size).fill(1 / size);
 
       let converged = false;
-      while (!converged) {
+      let iterations = 0;
+
+      while (!converged && iterations < 1000) {
         const newRank = multiplyMatrixVector(transitionMatrix, rankVector);
         const diff = newRank.map((val, i) => Math.abs(val - rankVector[i])).reduce((a, b) => a + b, 0);
 
         if (diff < tolerance) {
           converged = true;
         }
-        rankVector.forEach((_, i) => (rankVector[i] = newRank[i]));
+        rankVector = newRank;
+        iterations++;
       }
 
       return rankVector
@@ -80,14 +86,22 @@
         .sort((a, b) => b[1] - a[1]);
     }
 
-    function createTransitionMatrix(adjMatrix) {
-      const size = adjMatrix.length;
+    function createTransitionMatrix(adjMatrix, damping, size) {
       const columnSums = Array(size).fill(0);
 
       adjMatrix.forEach(row => row.forEach((val, col) => (columnSums[col] += val)));
 
-      return adjMatrix.map(row =>
+      // Normalize the adjacency matrix
+      const normalizedMatrix = adjMatrix.map(row =>
         row.map((val, col) => (columnSums[col] === 0 ? 0 : val / columnSums[col]))
+      );
+
+      // Apply damping factor
+      const teleportMatrix = Array(size)
+        .fill(0)
+        .map(() => Array(size).fill(1 / size));
+      return normalizedMatrix.map((row, i) =>
+        row.map((val, j) => damping * val + (1 - damping) * teleportMatrix[i][j])
       );
     }
 
