@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar com Matrizes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            white-space: pre-wrap; /* Para preservar a formatação */
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Entrar com Matrizes</h2>
+    
+    <p>Digite os valores da matriz no formato de vetor:</p>
+    <p>Exemplo: para uma matriz 2x2, insira: [1, 2, 3, 4] (sem os colchetes)</p>
+    
+    <label for="matriz">Matriz:</label>
+    <textarea id="matriz" placeholder="Insira os valores da matriz aqui"></textarea>
+    
+    <button onclick="processarMatriz()">Calcular</button>
+
+    <h3>Resultado:</h3>
+    <div id="resultado"></div>
+
+    <script>
+        // Função para processar o texto inserido pelo usuário
+        function processarMatriz() {
+            const input = document.getElementById('matriz').value.trim();
+            if (!input) {
+                alert("Por favor, insira uma matriz.");
+                return;
+            }
+
+            try {
+                // Converte o texto em um array de números
+                const v = input.split(',').map(val => parseFloat(val.trim()));
+                
+                // Determina o tamanho da matriz (supondo que o número de elementos seja quadrado)
+                const d = Math.sqrt(v.length);
+                if (d % 1 !== 0) {
+                    alert("O número de elementos não forma uma matriz quadrada.");
+                    return;
+                }
+
+                // Cria um objeto da classe Vetor e chama o método calcular
+                const vetor = new Vetor(d, v);
+                vetor.calcular();
+
+                // Exibe o resultado na página
+                document.getElementById('resultado').textContent = "Cálculo realizado com sucesso! Veja o cálculo detalhado abaixo.\n" + vetor.getResult();
+            } catch (e) {
+                alert("Erro ao processar a matriz. Certifique-se de que os valores estão corretos.");
+                console.error(e);
+            }
+        }
+
+        // Classe Vetor (ajustada para maior precisão)
+        class Vetor {
+            constructor(d, v) {
+                this.dim = d;
+                this.m1 = Array(d).fill([1]);
+                this.a = Array.from({ length: d }, (_, i) => v.slice(i * d, (i + 1) * d));
+                this.a0 = new Array(d).fill([0]);
+                this.h0 = this.dot(this.a, this.m1);
+                this.at = this.transpose(this.a);
+                this.a0 = this.dot(this.at, this.m1);
+                this.result = ''; // Para armazenar os resultados
+            }
+
+            calcular() {
+                let i = 1;
+                let a0 = this.a0;
+                while (i <= 1000) {
+                    this.h1 = this.vCentro(this.a, this.a0);
+                    this.a1 = this.vCentro(this.at, this.h1);
+
+                    if (this.erro(this.a1, a0) <= Math.pow(10, -16)) { // Maior precisão
+                        this.result += `Vezes calculadas: ${i}\n`;
+                        break;
+                    }
+                    a0 = this.a1;
+                    i++;
+                }
+                this.rank(this.a1);
+            }
+
+            rank(a) {
+                let m = a.map(row => row[0]);
+                m.sort((x, y) => y - x); // Ordena em ordem decrescente
+
+                let result = '';
+                for (let i = 0; i < a.length; i++) {
+                    for (let j = 0; j < a[i].length; j++) {
+                        result += ` ${a[i][j].toFixed(16)}`; // Exibe com maior precisão
+                        let pos = m.indexOf(a[i][j]);
+                        if (pos !== -1) {
+                            result += `   ${pos + 1} posição`;
+                        }
+                    }
+                    result += '\n';
+                }
+
+                this.result += result;
+            }
+
+            erro(a, b) {
+                let la = a.length, ca = a[0].length;
+                let cd = a.map((row, i) => row.map((val, j) => val - b[i][j]));
+                return this.modulo(cd);
+            }
+
+            transpose(a) {
+                return a[0].map((_, i) => a.map(row => row[i]));
+            }
+
+            dot(a, b) {
+                let la = a.length, ca = a[0].length, lb = b.length, cb = b[0].length;
+                let result = Array(la).fill().map(() => Array(cb).fill(0));
+
+                if (ca === lb) {
+                    for (let i = 0; i < la; i++) {
+                        for (let j = 0; j < cb; j++) {
+                            for (let k = 0; k < ca; k++) {
+                                result[i][j] += a[i][k] * b[k][j];
+                            }
+                        }
+                    }
+                }
+                return result;
+            }
+
+            vCentro(a, b) {
+                let c = this.dot(a, b);
+                return this.div(c, this.modulo(c));
+            }
+
+            div(a, b) {
+                return a.map(row => row.map(val => val / b));
+            }
+
+            modulo(a) {
+                let soma = 0;
+                for (let i = 0; i < a.length; i++) {
+                    for (let j = 0; j < a[i].length; j++) {
+                        soma += a[i][j] * a[i][j];
+                    }
+                }
+                return Math.sqrt(soma);
+            }
+
+            escrever(a) {
+                return a.map(row => row.join(' ')).join('\n');
+            }
+
+            set(a) {
+                this.a1 = a;
+            }
+
+            get(a) {
+                return this.a1;
+            }
+
+            // Método para obter o resultado
+            getResult() {
+                return this.result;
+            }
+        }
+    </script>
+
+</body>
+</html>
