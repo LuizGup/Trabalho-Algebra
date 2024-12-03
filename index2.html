@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar com Matrizes</title>
     <style>
+        /* Estilos gerais para a página */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -26,6 +27,7 @@
         button:hover {
             background-color: #45a049;
         }
+        /* Estilos para o bloco de resultado */
         #resultado {
             margin-top: 20px;
             padding: 15px;
@@ -42,9 +44,11 @@
     <p>Digite os valores da matriz no formato de vetor:</p>
     <p>Exemplo: para uma matriz 2x2, insira: [1, 2, 3, 4] (sem os colchetes)</p>
     
+    <!-- Campo para o usuário inserir os valores da matriz -->
     <label for="matriz">Matriz:</label>
     <textarea id="matriz" placeholder="Insira os valores da matriz aqui"></textarea>
     
+    <!-- Botão para acionar o cálculo -->
     <button onclick="processarMatriz()">Calcular</button>
 
     <h3>Resultado:</h3>
@@ -53,18 +57,23 @@
     <script>
         // Função para processar o texto inserido pelo usuário
         function processarMatriz() {
+            // Obtém o valor do campo de texto e remove espaços desnecessários
             const input = document.getElementById('matriz').value.trim();
+
+            // Verifica se o usuário inseriu algum valor
             if (!input) {
                 alert("Por favor, insira uma matriz.");
                 return;
             }
 
             try {
-                // Converte o texto em um array de números
+                // Converte o texto inserido em um array de números
                 const v = input.split(',').map(val => parseFloat(val.trim()));
                 
-                // Determina o tamanho da matriz (supondo que o número de elementos seja quadrado)
+                // Calcula o tamanho da matriz (assumindo que o número de elementos seja quadrado)
                 const d = Math.sqrt(v.length);
+
+                // Se o número de elementos não forma uma matriz quadrada, exibe um erro
                 if (d % 1 !== 0) {
                     alert("O número de elementos não forma uma matriz quadrada.");
                     return;
@@ -74,7 +83,7 @@
                 const vetor = new Vetor(d, v);
                 vetor.calcular();
 
-                // Exibe o resultado na página
+                // Exibe o resultado calculado
                 document.getElementById('resultado').textContent = "Cálculo realizado com sucesso! Veja o cálculo detalhado abaixo.\n" + vetor.getResult();
             } catch (e) {
                 alert("Erro ao processar a matriz. Certifique-se de que os valores estão corretos.");
@@ -82,45 +91,52 @@
             }
         }
 
-        // Classe Vetor (ajustada para maior precisão)
+        // Classe Vetor responsável pelos cálculos com a matriz
         class Vetor {
             constructor(d, v) {
-                this.dim = d;
-                this.m1 = Array(d).fill([1]);
+                this.dim = d; // Armazena a dimensão da matriz
+                this.m1 = Array(d).fill([1]); // Inicializa o vetor de 1s (necessário para a multiplicação)
+                // Cria a matriz a partir do vetor inserido pelo usuário
                 this.a = Array.from({ length: d }, (_, i) => v.slice(i * d, (i + 1) * d));
-                this.a0 = new Array(d).fill([0]);
-                this.h0 = this.dot(this.a, this.m1);
-                this.at = this.transpose(this.a);
-                this.a0 = this.dot(this.at, this.m1);
-                this.result = ''; // Para armazenar os resultados
+                this.a0 = new Array(d).fill([0]); // Inicializa o vetor a0
+                this.h0 = this.dot(this.a, this.m1); // Multiplica a matriz 'a' pelo vetor 'm1'
+                this.at = this.transpose(this.a); // Transpõe a matriz 'a'
+                this.a0 = this.dot(this.at, this.m1); // Multiplica a transposta pela matriz 'm1'
+                this.result = ''; // Armazena o resultado final
             }
 
+            // Método que realiza os cálculos
             calcular() {
                 let i = 1;
                 let a0 = this.a0;
                 while (i <= 1000) {
+                    // Calcula os vetores h1 e a1
                     this.h1 = this.vCentro(this.a, this.a0);
                     this.a1 = this.vCentro(this.at, this.h1);
 
+                    // Verifica se o erro é menor ou igual a um valor muito pequeno
                     if (this.erro(this.a1, a0) <= Math.pow(10, -16)) { // Maior precisão
                         this.result += `Vezes calculadas: ${i}\n`;
                         break;
                     }
-                    a0 = this.a1;
+                    a0 = this.a1; // Atualiza a0 para o próximo valor
                     i++;
                 }
+                // Classifica os resultados após os cálculos
                 this.rank(this.a1);
             }
 
+            // Método que ordena os elementos da matriz em ordem decrescente
             rank(a) {
                 let m = a.map(row => row[0]);
-                m.sort((x, y) => y - x); // Ordena em ordem decrescente
+                m.sort((x, y) => y - x); // Ordena os valores de forma decrescente
 
                 let result = '';
+                // Itera sobre os elementos da matriz e exibe o ranking
                 for (let i = 0; i < a.length; i++) {
                     for (let j = 0; j < a[i].length; j++) {
-                        result += ` ${a[i][j].toFixed(16)}`; // Exibe com maior precisão
-                        let pos = m.indexOf(a[i][j]);
+                        result += ` ${a[i][j].toFixed(16)}`; // Exibe o valor com maior precisão
+                        let pos = m.indexOf(a[i][j]); // Encontra a posição do valor
                         if (pos !== -1) {
                             result += `   ${pos + 1} posição`;
                         }
@@ -128,28 +144,33 @@
                     result += '\n';
                 }
 
+                // Adiciona o resultado ao conteúdo final
                 this.result += result;
             }
 
+            // Método que calcula o erro entre as matrizes a e b
             erro(a, b) {
                 let la = a.length, ca = a[0].length;
-                let cd = a.map((row, i) => row.map((val, j) => val - b[i][j]));
-                return this.modulo(cd);
+                let cd = a.map((row, i) => row.map((val, j) => val - b[i][j])); // Subtrai os valores de a e b
+                return this.modulo(cd); // Retorna o módulo do erro
             }
 
+            // Método que transpõe a matriz (transforma linhas em colunas)
             transpose(a) {
                 return a[0].map((_, i) => a.map(row => row[i]));
             }
 
+            // Método que realiza a multiplicação de matrizes
             dot(a, b) {
                 let la = a.length, ca = a[0].length, lb = b.length, cb = b[0].length;
                 let result = Array(la).fill().map(() => Array(cb).fill(0));
 
+                // Verifica se as dimensões são compatíveis para multiplicação
                 if (ca === lb) {
                     for (let i = 0; i < la; i++) {
                         for (let j = 0; j < cb; j++) {
                             for (let k = 0; k < ca; k++) {
-                                result[i][j] += a[i][k] * b[k][j];
+                                result[i][j] += a[i][k] * b[k][j]; // Calcula o produto
                             }
                         }
                     }
@@ -157,38 +178,45 @@
                 return result;
             }
 
+            // Método que calcula o vetor central
             vCentro(a, b) {
-                let c = this.dot(a, b);
-                return this.div(c, this.modulo(c));
+                let c = this.dot(a, b); // Multiplica as matrizes
+                return this.div(c, this.modulo(c)); // Divide pelo módulo do vetor c
             }
 
+            // Método que divide os elementos de uma matriz por um número
             div(a, b) {
-                return a.map(row => row.map(val => val / b));
+                return a.map(row => row.map(val => val / b)); // Realiza a divisão por cada valor
             }
 
+            // Método que calcula o módulo de uma matriz
             modulo(a) {
                 let soma = 0;
+                // Itera sobre todos os elementos e soma os quadrados
                 for (let i = 0; i < a.length; i++) {
                     for (let j = 0; j < a[i].length; j++) {
                         soma += a[i][j] * a[i][j];
                     }
                 }
-                return Math.sqrt(soma);
+                return Math.sqrt(soma); // Retorna a raiz quadrada da soma
             }
 
+            // Método para formatar a matriz como uma string
             escrever(a) {
                 return a.map(row => row.join(' ')).join('\n');
             }
 
+            // Método para atualizar a matriz
             set(a) {
                 this.a1 = a;
             }
 
+            // Método para obter a matriz
             get(a) {
                 return this.a1;
             }
 
-            // Método para obter o resultado
+            // Método para obter o resultado final
             getResult() {
                 return this.result;
             }
